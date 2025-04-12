@@ -1,0 +1,115 @@
+CREATE DATABASE student_portal;
+
+USE student_portal;
+
+CREATE TABLE attendance (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_name VARCHAR(100),
+    student_id VARCHAR(50),
+    date DATE,
+    status ENUM('Present', 'Absent') NOT NULL
+);
+
+-- Insert some sample data (optional)
+INSERT INTO attendance (student_name, student_id, date, status) VALUES
+('Alice', 'S001', '2025-04-12', 'Present'),
+('Bob', 'S002', '2025-04-12', 'Absent');
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Attendance Portal</title>
+</head>
+<body>
+    <h2>Enter Student Attendance</h2>
+    <form action="AttendanceServlet" method="post">
+        <label for="student_name">Student Name:</label><br>
+        <input type="text" id="student_name" name="student_name" required><br><br>
+
+        <label for="student_id">Student ID:</label><br>
+        <input type="text" id="student_id" name="student_id" required><br><br>
+
+        <label for="date">Date:</label><br>
+        <input type="date" id="date" name="date" required><br><br>
+
+        <label for="status">Attendance Status:</label><br>
+        <select id="status" name="status">
+            <option value="Present">Present</option>
+            <option value="Absent">Absent</option>
+        </select><br><br>
+
+        <input type="submit" value="Submit Attendance">
+    </form>
+</body>
+</html>
+package com.studentportal;
+
+import java.io.*;
+import java.sql.*;
+import javax.servlet.*;
+import javax.servlet.http.*;
+import javax.servlet.annotation.WebServlet;
+
+@WebServlet("/AttendanceServlet")
+public class AttendanceServlet extends HttpServlet {
+
+    // Database configuration
+    private static final String JDBC_URL = "jdbc:mysql://localhost:3306/student_portal";
+    private static final String DB_USER = "root";  // Your MySQL username
+    private static final String DB_PASSWORD = "your_password";  // Your MySQL password
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        // Retrieve form data
+        String studentName = request.getParameter("student_name");
+        String studentId = request.getParameter("student_id");
+        String date = request.getParameter("date");
+        String status = request.getParameter("status");
+
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+
+        // JDBC connection
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, DB_USER, DB_PASSWORD)) {
+
+            // SQL query to insert attendance data
+            String query = "INSERT INTO attendance (student_name, student_id, date, status) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement stmt = conn.prepareStatement(query)) {
+                stmt.setString(1, studentName);
+                stmt.setString(2, studentId);
+                stmt.setDate(3, Date.valueOf(date));  // Convert String to Date
+                stmt.setString(4, status);
+
+                // Execute the query
+                int result = stmt.executeUpdate();
+
+                // Provide feedback to the user
+                if (result > 0) {
+                    out.println("<h3>Attendance for " + studentName + " has been successfully recorded!</h3>");
+                } else {
+                    out.println("<h3>Failed to record attendance. Please try again.</h3>");
+                }
+            }
+
+        } catch (SQLException e) {
+            out.println("<h3>Error: " + e.getMessage() + "</h3>");
+            e.printStackTrace(out);
+        }
+
+        out.println("<br><a href='attendance.jsp'>Go Back</a>");
+    }
+}
+<web-app xmlns="http://java.sun.com/xml/ns/javaee" version="3.0">
+    
+    <servlet>
+        <servlet-name>AttendanceServlet</servlet-name>
+        <servlet-class>com.studentportal.AttendanceServlet</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>AttendanceServlet</servlet-name>
+        <url-pattern>/AttendanceServlet</url-pattern>
+    </servlet-mapping>
+
+</web-app>
